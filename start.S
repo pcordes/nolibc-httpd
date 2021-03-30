@@ -1,15 +1,25 @@
 .intel_syntax noprefix
 
-/* functions: rdi, rsi, rdx, rcx, r8, r9 */
-/*  syscalls: rdi, rsi, rdx, r10, r8, r9 */
-/*                           ^^^         */
-/* stack grows from a high address to a low address */
+.global _start
+_start:
+.Lfoo:
+  xor  ebp, ebp
+  xor  r9d, r9d
+  pop  rdi      /* argc */
+  push rsp  ; pop rsi
+//  mov  rsi, rsp /* argv */
+    //  jmp main     // noreturn.  TODO: force jmp short rel8
+    // TODO: fall through into main without having it GCed away.
+  call main
+  # call exit  # fall through instead
 
+// TODO: use inc for n==1
 #define c(x, n) \
 .global x; \
 x:; \
   add r9,n
 
+#if 0   // inline asm instead
 c(exit, 3)       /* 60 */
 c(fork, 3)       /* 57 */
 c(setsockopt, 4) /* 54 */
@@ -28,12 +38,9 @@ read:
   xor r9,r9
   syscall
   ret
+#endif
 
-.global _start
-_start:
-  xor rbp,rbp
-  xor r9,r9
-  pop rdi     /* argc */
-  mov rsi,rsp /* argv */
-  call main
-  call exit
+/* functions: rdi, rsi, rdx, rcx, r8, r9 */
+/*  syscalls: rdi, rsi, rdx, r10, r8, r9 */
+/*                           ^^^         */
+/* stack grows from a high address to a low address */

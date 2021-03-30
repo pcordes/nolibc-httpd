@@ -35,23 +35,24 @@ ehdrsize      equ     $ - ehdr
 
 phdrsize      equ     $ - phdr
 
+%macro MOVE 2    ; 2 bytes if neither operand needs a REX
+    push  %2     ; otherwise not worth it
+    pop   %1     ; clobbers: red zone below RSP
+%endmacro
+
 _start:
-        xor     rbp, rbp
-        xor     r9, r9
+        xor     ebp, ebp
+        xor     r9d, r9d
         pop     rdi
-        mov     rsi, rsp
-        push    r14
-        push    r13
-        push    r12
-        push    rbp
-        push    rbx
-        mov     rbx, rsi
+        MOVE    rsi, rsp
+    ;push    r14   ; pointless, _start doesn't need to save any regs for return
+        MOVE    rbx, rsi
         sub     rsp, 8224
         cmp     edi, 3
         jnz     ?_004
         mov     rcx, qword [rsi+8H]
         xor     eax, eax
-?_002:  movsx   dx, byte [rcx]
+?_002:  movsx   edx, byte [rcx]     ; 32-bit reg saves a prefix
         test    dl, dl
         jz      ?_003
         lea     esi, [rdx-30H]
@@ -62,8 +63,9 @@ _start:
         lea     eax, [rax+rdx-30H]
         jmp     ?_002
 
-?_003:  xchg    al, ah
-        test    ax, ax
+?_003: ; xchg    al, ah
+       ; test    ax, ax
+      rol     ax, 8         ; sets ZF and swaps
         jnz     ?_007
 ?_004:  mov     rbp, qword [rbx]
         mov     edx, 7
@@ -173,13 +175,10 @@ _start:
 
 ?_015:  mov     r12d, 1
 ?_016:  add     rsp, 8224
-        mov     eax, r12d
-        pop     rbx
-        pop     rbp
-        pop     r12
-        pop     r13
-        pop     r14
-        call    ?_017
+    ;        mov     eax, r12d
+    xchg    edi, r12d
+    ; pop     r14   ; pointless, we just exit
+    ;    call    ?_017  ; fall through
 
 ?_017:
         add     r9, 3
@@ -190,7 +189,7 @@ _start:
 ?_022:  add     r9, 5
 ?_023:  add     r9, 2
 ?_024:  add     r9, 38
-?_025:  add     r9, 1
+?_025:  inc     r9d       ; add     r9, 1
 ?_026:  add     r9, 1
 ?_027:  add     r9, 1
 ?_028:  mov     r10, rcx
